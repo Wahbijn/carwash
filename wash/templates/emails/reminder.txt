@@ -1,0 +1,10 @@
+Bonjour {{ user.first_name|default:user.username }},
+
+Vous avez une réservation pour : {{ booking.service.name }}
+Date/heure : {{ booking.scheduled_at|date:"d M Y — H:i T" }}
+Véhicule : {{ booking.vehicle.license_plate }}
+
+Détails : {{ detail_url }}
+Annulation : {{ cancel_url }}
+
+Merci — Carwash.

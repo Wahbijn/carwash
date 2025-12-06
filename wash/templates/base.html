@@ -1,0 +1,115 @@
+{# templates/base.html #}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}CarWash{% endblock %}</title>
+
+  <!-- Bootstrap 5 CSS (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body { padding-top: 70px; background:#f8f9fa; }
+    .hero { padding: 40px 24px; background: #fff; border-radius: 8px; box-shadow: 0 6px 18px rgba(15,15,15,0.05); margin-bottom: 24px; }
+    .navbar-brand { font-weight:600; letter-spacing: .3px; }
+    .nav-user { display:flex; align-items:center; gap:.5rem; }
+    .user-avatar { width:36px; height:36px; border-radius:50%; background:#6c757d; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+    .site-container { max-width:1100px; margin:0 auto; padding: 0 16px; }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+  <div class="container site-container">
+    <a class="navbar-brand" href="{% url 'home' %}">CarWash</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <!-- left side if needed -->
+      </ul>
+
+      <ul class="navbar-nav ms-auto align-items-center">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'services-list' %}">Services</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'bookings-list' %}">Mes réservations</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'bookings-create' %}">Nouvelle réservation</a>
+        </li>
+        {% if user.is_authenticated and user.is_staff %}
+          <li class="nav-item">
+            <a class="nav-link" href="/admin/">Admin</a>
+          </li>
+        {% endif %}
+
+
+        {% if user.is_authenticated %}
+          <!-- user dropdown (signed in) -->
+          <li class="nav-item dropdown ms-3">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="user-avatar me-2">{{ user.username|slice:":1"|upper }}</span>
+              <span class="d-none d-lg-inline">{{ user.username }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+              <li><a class="dropdown-item" href="{% url 'bookings-list' %}"><i class="bi bi-calendar-check me-2"></i>Mes réservations</a></li>
+              <li><a class="dropdown-item" href="{% url 'services-list' %}"><i class="bi bi-wrench me-2"></i>Services</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="post" action="{% url 'logout' %}" class="px-3 py-1">
+                  {% csrf_token %}
+                  <button class="btn btn-outline-danger w-100" type="submit">Se déconnecter</button>
+                </form>
+              </li>
+            </ul>
+          </li>
+        {% else %}
+          <!-- not authenticated -->
+          <li class="nav-item ms-3">
+            <a class="nav-link" href="{% url 'login' %}">Se connecter</a>
+          </li>
+          <li class="nav-item ms-1">
+            <a class="nav-link btn btn-outline-light btn-sm text-dark" style="background:#ffffff22" href="{% url 'signup' %}">S'inscrire</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="site-container">
+  {% if messages %}
+    <div class="mt-3">
+      {% for m in messages %}
+        <div class="alert alert-{{ m.tags }} alert-dismissible fade show" role="alert">
+          {{ m }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block content %}
+  <!-- default hero when a page doesn't override it -->
+  <div class="hero">
+    <h1 class="display-5">Bienvenue chez CarWash</h1>
+    <p class="text-muted">Réservez votre lavage ou achetez des accessoires.</p>
+    <p><a href="{% url 'services-list' %}" class="btn btn-primary">Voir nos services</a></p>
+  </div>
+  {% endblock %}
+</div>
+
+<!-- Bootstrap JS (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
