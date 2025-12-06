@@ -142,18 +142,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # EMAIL — GMAIL SMTP (Final, Stable)
 # ============================
 
-# Tu DOIS mettre ces 3 lignes dans ton .env :
-# EMAIL_HOST_USER=carwashnotifications2@gmail.com
-# EMAIL_HOST_PASSWORD=TON_MOT_DE_PASSE_D_APP_GMAIL
-# DEFAULT_FROM_EMAIL=carwashnotifications2@gmail.com
+
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")              # ex: carwashnotifications2@gmail.com
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")      # mot de passe d'application Gmail
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")              
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")      
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
 
