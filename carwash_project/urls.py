@@ -24,14 +24,19 @@ from wash import views as wash_views
 from accounts import views as accounts_views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', wash_views.home, name='home'),
+    # 👉 Register your custom admin pages FIRST
+    path("", include("wash.urls")),  # your app URLs FIRST
+
+    # 👉 Default Django Admin LAST
+    path("admin/", admin.site.urls),
     path('', include('wash.urls')),
     path('accounts/signup/', accounts_views.signup_view, name='signup'),
     path('accounts/profile/', accounts_views.profile_view, name='profile'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('bookings/new/', wash_views.BookingCreateView.as_view(), name='bookings-create'),
     path('bookings/<int:pk>/cancel/', wash_views.booking_cancel, name='bookings-cancel'),
+    path("", wash_views.home, name="home"),
+
 ]
 
 # dev: serve media files

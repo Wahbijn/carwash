@@ -10,7 +10,27 @@
 
     <div class="mb-3">
       <label for="{{ form.vehicle.id_for_label }}" class="form-label">Véhicule :</label>
-      {{ form.vehicle }}
+
+      {% if form.no_vehicle %}
+
+          <div class="alert alert-warning">
+              Vous n’avez pas de véhicule enregistré.<br>
+              <a href="{% url 'vehicles-new' %}" class="btn btn-sm btn-primary mt-2">➕ Ajouter un véhicule</a>
+          </div>
+
+      {% else %}
+
+          {{ form.vehicle }}
+
+          <!-- ✅ BOUTON AJOUTÉ ICI (visible quand l’utilisateur a déjà au moins 1 véhicule) -->
+          <div class="mt-2">
+              <a href="{% url 'vehicles-new' %}" class="btn btn-outline-primary btn-sm" target="_blank">
+                  ➕ Ajouter un véhicule
+              </a>
+          </div>
+
+      {% endif %}
+
       {% if form.vehicle.help_text %}<div class="form-text">{{ form.vehicle.help_text }}</div>{% endif %}
       {% if form.vehicle.errors %}
         <div class="text-danger small mt-1">{{ form.vehicle.errors|striptags }}</div>

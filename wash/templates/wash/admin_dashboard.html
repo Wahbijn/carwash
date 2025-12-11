@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js must be loaded here to avoid blank charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <h2 class="mb-4 text-center">Dashboard Administrateur</h2>
+
+    <!-- ============================
+            STATS CARDS
+    ============================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h5>Total Réservations</h5>
+                <h3>{{ total_bookings }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h5>Aujourd'hui</h5>
+                <h3>{{ today_bookings }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h5>Utilisateurs</h5>
+                <h3>{{ total_users }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h5>Revenus (TND)</h5>
+                <h3>{{ total_revenue }}</h3>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ============================
+            SEARCH + FILTER BAR
+    ============================= -->
+    <div class="card shadow-sm mb-4 p-3">
+
+        <!-- SEARCH BAR -->
+        <form method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" value="{{ search_query }}" class="form-control"
+                       placeholder="Rechercher (client, service, véhicule, ID)…">
+                <button class="btn btn-secondary">Rechercher</button>
+            </div>
+        </form>
+
+        <!-- FILTERS -->
+        <form method="GET" class="row g-3">
+
+            <div class="col-md-3">
+                <label class="form-label">Statut</label>
+                <select name="status" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+                    <option value="done" {% if status_filter == "done" %}selected{% endif %}>Done</option>
+                    <option value="cancelled" {% if status_filter == "cancelled" %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Service</label>
+                <select name="service" class="form-select">
+                    <option value="">Tous</option>
+                    {% for s in services %}
+                        <option value="{{ s.id }}"
+                        {% if service_filter|default:'' == s.id|stringformat:"s" %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" value="{{ date_filter }}" class="form-control">
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary w-100">Filtrer</button>
+            </div>
+
+        </form>
+    </div>
+
+
+    <!-- ============================
+                CHARTS
+    ============================= -->
+    <div class="row">
+
+        <!-- Reservations Per Day -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center mb-3">Réservations par jour</h5>
+                <canvas id="reservationsChart" height="180"></canvas>
+            </div>
+        </div>
+
+        <!-- Most Used Services -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center mb-3">Services les plus utilisés</h5>
+                <canvas id="serviceChart" height="180"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================
+            TOP CLIENTS CHART
+    ============================= -->
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center mb-3">Top Clients</h5>
+                <canvas id="topClientsChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ============================
+          RECENT BOOKINGS TABLE
+    ============================= -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <strong>Dernières réservations</strong>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Client</th>
+                        <th>Service</th>
+                        <th>Véhicule</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in latest_bookings %}
+                    <tr>
+                        <td>{{ b.id }}</td>
+                        <td>{{ b.user.username }}</td>
+                        <td>{{ b.service.name }}</td>
+                        <td>{{ b.vehicle.license_plate }}</td>
+                        <td>{{ b.scheduled_date }} {{ b.scheduled_time }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if b.status == 'cancelled' %}bg-danger
+                                {% elif b.status == 'done' %}bg-success
+                                {% else %}bg-primary{% endif %}">
+                                {{ b.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-3">Aucune réservation récente</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- ACTION BUTTONS -->
+    <div class="mt-3">
+        <a href="{% url 'services-create' %}" class="btn btn-success">Ajouter un service</a>
+        <a href="{% url 'bookings-list' %}" class="btn btn-outline-primary">Voir toutes les réservations</a>
+    </div>
+
+</div>
+
+
+<!-- ============================
+            CHART SCRIPTS
+=============================== -->
+<script>
+    const days = {{ days|safe }};
+    const reservationsData = {{ reservations_count|safe }};
+    const serviceLabels = {{ service_labels|safe }};
+    const serviceCounts = {{ service_counts|safe }};
+    const topClientNames = {{ top_client_names|safe }};
+    const topClientCounts = {{ top_client_counts|safe }};
+
+    // Reservations per day
+    new Chart(document.getElementById("reservationsChart"), {
+        type: "line",
+        data: {
+            labels: days,
+            datasets: [{
+                label: "Réservations",
+                data: reservationsData,
+                borderColor: "#007bff",
+                backgroundColor: "rgba(0, 123, 255, 0.2)",
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        }
+    });
+
+    // Service usage
+    new Chart(document.getElementById("serviceChart"), {
+        type: "bar",
+        data: {
+            labels: serviceLabels,
+            datasets: [{
+                label: "Nombre d'utilisations",
+                data: serviceCounts,
+                backgroundColor: "rgba(40, 167, 69, 0.5)",
+                borderColor: "#28a745",
+                borderWidth: 2
+            }]
+        }
+    });
+
+    // Top Clients
+    new Chart(document.getElementById("topClientsChart"), {
+        type: "bar",
+        data: {
+            labels: topClientNames,
+            datasets: [{
+                label: "Réservations",
+                data: topClientCounts,
+                backgroundColor: "rgba(255, 193, 7, 0.5)",
+                borderColor: "#ffc107",
+                borderWidth: 2
+            }]
+        }
+    });
+</script>
+
+{% endblock %}

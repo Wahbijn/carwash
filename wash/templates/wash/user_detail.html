@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Profil Utilisateur{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <h3>Détails : {{ user_obj.username }}</h3>
+
+    <p><strong>Email :</strong> {{ user_obj.email }}</p>
+    <p><strong>Admin :</strong> {{ user_obj.is_staff }}</p>
+    <p><strong>Actif :</strong> {{ user_obj.is_active }}</p>
+
+    <a href="{% url 'user-edit' user_obj.id %}" class="btn btn-primary">Modifier</a>
+
+    <a href="{% url 'user-toggle-active' user_obj.id %}" class="btn btn-warning">
+        {% if user_obj.is_active %} Désactiver {% else %} Activer {% endif %}
+    </a>
+
+    <a href="{% url 'user-toggle-admin' user_obj.id %}" class="btn btn-info">
+        {% if user_obj.is_staff %} Retirer Admin {% else %} Rendre Admin {% endif %}
+    </a>
+
+    <a href="{% url 'user-delete' user_obj.id %}" class="btn btn-danger">Supprimer</a>
+
+    <hr>
+
+    <h4>Réservations</h4>
+    <ul>
+    {% for b in bookings %}
+        <li>#{{ b.id }} – {{ b.service.name }} – {{ b.scheduled_date }}</li>
+    {% empty %}
+        <em>Aucune réservation</em>
+    {% endfor %}
+    </ul>
+
+</div>
+{% endblock %}

@@ -1,22 +1,165 @@
 # wash/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-from django.views.generic import ListView, CreateView, DetailView
-from django.contrib.auth.decorators import login_required
+from django.views.generic import ListView, CreateView, DetailView, UpdateView
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.http import HttpResponseForbidden
-from psycopg2 import DatabaseError
+from django.contrib import messages
+from django.contrib.auth.models import User
+from django.db.models import Sum, Count, Q
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.db.models.functions import TruncDate
+
 from .models import Service, Booking, Vehicle
 from .forms import BookingForm, VehicleForm
-from django.contrib.auth.mixins import LoginRequiredMixin
+
 from django.views.generic import UpdateView
-from django.urls import reverse_lazy
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
 
 
-# --- Services ---
+# ============================================================
+#                    🔥 ADMIN DASHBOARD
+# ============================================================
+@user_passes_test(lambda u: u.is_staff)
+def admin_dashboard(request):
+
+    # -------------------------------
+    #      GLOBAL STATISTICS
+    # -------------------------------
+    total_bookings = Booking.objects.exclude(status="cancelled").count()
+
+    today_bookings = Booking.objects.filter(
+        scheduled_date=timezone.now().date()
+    ).exclude(status="cancelled").count()
+
+    total_users = User.objects.count()
+
+    total_revenue = Booking.objects.filter(
+        status="done",
+        service__price__isnull=False
+    ).aggregate(total=Sum('service__price'))["total"] or 0
+
+
+    # -------------------------------
+    #           FILTERS
+    # -------------------------------
+    status_filter = request.GET.get("status")
+    service_filter = request.GET.get("service")
+    date_filter = request.GET.get("date")
+
+    # -------------------------------
+    #           SEARCH
+    # -------------------------------
+    search_query = request.GET.get("search", "")
+
+    latest_bookings = Booking.objects.exclude(status="cancelled")
+
+    if search_query:
+        latest_bookings = latest_bookings.filter(
+            Q(id__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(service__name__istartswith=search_query) |   # FIX prefix-only match
+            Q(vehicle__license_plate__icontains=search_query)
+        )
+
+    if status_filter:
+        latest_bookings = latest_bookings.filter(status=status_filter)
+
+    if service_filter:
+        latest_bookings = latest_bookings.filter(service_id=service_filter)
+
+    if date_filter:
+        latest_bookings = latest_bookings.filter(scheduled_date=date_filter)
+
+    latest_bookings = latest_bookings.order_by("-created_at")[:20]
+
+    services = Service.objects.all()
+
+
+    # -------------------------------
+    #     CHART — BOOKINGS PER DAY
+    # -------------------------------
+    last_days = Booking.objects.exclude(status="cancelled") \
+        .filter(created_at__date__gte=timezone.now().date() - timezone.timedelta(days=7)) \
+        .annotate(day=TruncDate("created_at")) \
+        .values("day") \
+        .annotate(count=Count("id")) \
+        .order_by("day")
+
+    days = [str(item["day"]) for item in last_days]
+    reservations_count = [item["count"] for item in last_days]
+
+
+    # -------------------------------
+    #     CHART — SERVICE STATS
+    # -------------------------------
+    service_stats = Booking.objects.exclude(status="cancelled") \
+        .values("service__name") \
+        .annotate(count=Count("id")) \
+        .order_by("-count")
+
+    service_labels = [s["service__name"] for s in service_stats]
+    service_counts = [s["count"] for s in service_stats]
+
+
+    # -------------------------------
+    #     🔥 NEW: CHART — TOP CLIENTS
+    # -------------------------------
+    top_clients = (
+        Booking.objects.exclude(status="cancelled")
+        .values("user__username")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    top_client_names = [c["user__username"] for c in top_clients]
+    top_client_counts = [c["total"] for c in top_clients]
+
+
+    # -------------------------------
+    #     RETURN DATA TO TEMPLATE
+    # -------------------------------
+    return render(request, "wash/admin_dashboard.html", {
+        "total_bookings": total_bookings,
+        "today_bookings": today_bookings,
+        "total_users": total_users,
+        "total_revenue": total_revenue,
+
+        "latest_bookings": latest_bookings,
+        "days": days,
+        "reservations_count": reservations_count,
+        "service_labels": service_labels,
+        "service_counts": service_counts,
+
+        # filters + search
+        "services": services,
+        "status_filter": status_filter,
+        "service_filter": service_filter,
+        "date_filter": date_filter,
+        "search_query": search_query,
+
+        # NEW TOP CLIENTS DATA
+        "top_client_names": top_client_names,
+        "top_client_counts": top_client_counts,
+    })
+
+
+
+# ============================================================
+#                   🔥 HOME PAGE (Auto-redirect admin)
+# ============================================================
+def home(request):
+    if request.user.is_authenticated and request.user.is_staff:
+        return admin_dashboard(request)
+    return render(request, "wash/home.html")
+
+
+
+# ============================================================
+#                        SERVICES
+# ============================================================
 class ServiceListView(ListView):
     model = Service
     template_name = "wash/service_list.html"
@@ -24,12 +167,14 @@ class ServiceListView(ListView):
 
 class ServiceCreateView(LoginRequiredMixin, CreateView):
     model = Service
-    fields = ["name", "description", "price", "duration_minutes"]
+    fields = ["name", "price", "duration_minutes"]
     template_name = "wash/service_form.html"
     success_url = reverse_lazy("services-list")
 
 
-# --- Bookings ---
+# ============================================================
+#                        BOOKINGS
+# ============================================================
 class BookingCreateView(LoginRequiredMixin, CreateView):
     model = Booking
     form_class = BookingForm
@@ -37,74 +182,49 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('bookings-list')
     login_url = '/accounts/login/'
 
+    def get_initial(self):
+        initial = super().get_initial()
+        service_id = self.request.GET.get("service")
+        if service_id:
+            initial["service"] = service_id
+        return initial
+
     def get_form_kwargs(self):
-        """Passe request.user au formulaire pour limiter la queryset des véhicules."""
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
-        """
-        Save avec commit=False pour assigner user avant insertion en DB,
-        puis save() et save_m2m() si besoin.
-        """
-        # crée l'instance sans l'enregistrer encore en DB
         obj = form.save(commit=False)
-
-        # obligatoire : assigner l'utilisateur connecté
         obj.user = self.request.user
 
-        # si tu as un champ created_at auto rempli manuellement:
         if hasattr(obj, "created_at") and obj.created_at is None:
             obj.created_at = timezone.now()
 
-        # calcul serveur si tu veux (prix total etc.)
-        try:
-            if obj.service and getattr(obj.service, "price", None) is not None:
-                # si tu as un champ total_price dans Booking
-                if hasattr(obj, "total_price"):
-                    obj.total_price = obj.service.price
-        except Exception:
-            pass
+        if obj.service and getattr(obj.service, "price", None) is not None:
+            if hasattr(obj, "total_price"):
+                obj.total_price = obj.service.price
 
-        # maintenant on peut sauver
         obj.save()
-
-        # m2m (si applicables)
         if hasattr(form, "save_m2m"):
             form.save_m2m()
 
-        # message d'info facultatif
         messages.success(self.request, "Réservation créée.")
-
-        # super().form_valid(form) s'attend à self.object = obj et fait la redirection
-        self.object = obj
         return super().form_valid(form)
-    
+
+
 class BookingListView(LoginRequiredMixin, ListView):
     model = Booking
     template_name = "wash/booking_list.html"
 
     def get_queryset(self):
-        # uniquement réservations de l'utilisateur connecté, avec service+vehicle chargés
         qs = Booking.objects.filter(user=self.request.user).select_related('service', 'vehicle')
-
-        # par défaut on masque les réservations annulées
         if any(f.name == "status" for f in Booking._meta.fields):
             qs = qs.exclude(status='cancelled')
 
-        # tri : préfère created_at si présent
-        field_names = {f.name for f in Booking._meta.fields}
-        if 'created_at' in field_names:
+        if 'created_at' in [f.name for f in Booking._meta.fields]:
             return qs.order_by('-created_at')
-
-        order_fields = []
-        if 'scheduled_date' in field_names:
-            order_fields.append('-scheduled_date')
-        if 'scheduled_time' in field_names:
-            order_fields.append('-scheduled_time')
-        order_fields.append('-pk')
-        return qs.order_by(*order_fields)
+        return qs.order_by('-pk')
 
 
 class BookingDetailView(LoginRequiredMixin, DetailView):
@@ -112,73 +232,62 @@ class BookingDetailView(LoginRequiredMixin, DetailView):
     template_name = "wash/booking_detail.html"
 
     def get_queryset(self):
-        # restreint aux réservations de l'utilisateur (sécurité)
-        return Booking.objects.select_related('service', 'vehicle', 'user').filter(user=self.request.user)
+        return Booking.objects.select_related('service', 'vehicle', 'user') \
+                              .filter(user=self.request.user)
+
 
 class BookingCancelView(LoginRequiredMixin, View):
-    """
-    Annule une réservation (POST uniquement). On marque 'status' = 'cancelled'
-    si le modèle a un champ status, sinon on supprime la réservation.
-    """
-    def post(self, request, pk, *args, **kwargs):
+    def post(self, request, pk):
         booking = get_object_or_404(Booking, pk=pk)
-        # sécurité : l'utilisateur ne peut annuler que sa réservation
+
         if booking.user_id != request.user.id:
             return HttpResponseForbidden("Not allowed")
 
         if any(f.name == "status" for f in Booking._meta.fields):
             booking.status = "cancelled"
-            booking.save(update_fields=["status"])
+            booking.save()
             messages.success(request, "Réservation annulée.")
         else:
             booking.delete()
             messages.success(request, "Réservation supprimée.")
 
         return redirect("bookings-list")
-# Fonction simple pour annuler une réservation (POST uniquement)
+
+
 @login_required
 @require_POST
 def booking_cancel(request, pk):
     booking = get_object_or_404(Booking, pk=pk, user=request.user)
-    # marque comme annulée (ou utilises booking.delete() si tu veux supprimer)
-    if any(f.name == "status" for f in Booking._meta.fields):
-        booking.status = 'cancelled'
-        booking.save(update_fields=['status'])
-        messages.success(request, "Réservation annulée.")
-    else:
-        # si pas de champ status, supprime (option sûre)
-        booking.delete()
-        messages.success(request, "Réservation supprimée.")
+    booking.status = 'cancelled'
+    booking.save(update_fields=['status'])
+    messages.success(request, "Réservation annulée.")
     return redirect('bookings-list')
+
 
 class BookingUpdateView(LoginRequiredMixin, UpdateView):
     model = Booking
     form_class = BookingForm
-    template_name = "wash/booking_form.html"  # peut être le même que la création
+    template_name = "wash/booking_form.html"
     success_url = reverse_lazy('bookings-list')
-    login_url = '/accounts/login/'
 
     def get_queryset(self):
-        # l'utilisateur ne peut éditer que ses propres réservations
         return Booking.objects.filter(user=self.request.user)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        # passe l'utilisateur au formulaire (important pour limiter vehicle queryset)
         kwargs['user'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
-        # tu peux garder la même logique que pour la création si besoin
         obj = form.save(commit=False)
-        # ensure owner remains the same (defensive)
         obj.user = self.request.user
         obj.save()
-        if hasattr(form, "save_m2m"):
-            form.save_m2m()
         return super().form_valid(form)
 
-# --- Vehicles ---
+
+# ============================================================
+#                        VEHICLES
+# ============================================================
 @login_required(login_url='/accounts/login/')
 def vehicle_create(request):
     if request.method == 'POST':
@@ -187,11 +296,83 @@ def vehicle_create(request):
             v = form.save(commit=False)
             v.owner = request.user
             v.save()
-            return redirect('vehicles-list')
+            return redirect('bookings-create')
     else:
         form = VehicleForm()
+
     return render(request, 'wash/vehicle_form.html', {'form': form})
 
 
-def home(request):
-    return render(request, 'wash/home.html')
+# ============================================================
+#                    USER MANAGEMENT (ADMIN ONLY)
+# ============================================================
+from django.contrib.auth.models import User
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def users_list(request):
+    search = request.GET.get("search", "")
+    users = User.objects.filter(username__icontains=search).order_by("id")
+    return render(request, "wash/users_list.html", {
+        "users": users,
+        "search": search
+    })
+
+
+@staff_member_required
+def user_edit(request, user_id):
+    user = User.objects.get(id=user_id)
+
+    if request.method == "POST":
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+
+        user.save()
+        messages.success(request, "Utilisateur mis à jour.")
+        return redirect("users-list")
+
+    return render(request, "wash/user_edit.html", {"user": user})
+
+
+@staff_member_required
+def user_delete(request, user_id):
+    user = User.objects.get(id=user_id)
+    user.delete()
+    messages.success(request, "Utilisateur supprimé.")
+    return redirect("users-list")
+
+
+
+
+
+# ============================================================
+#                    SERVICE MANAGEMENT
+# ============================================================
+
+
+
+
+class ServiceUpdateView(UpdateView):
+    model = Service
+    fields = ["name", "price", "duration_minutes"]
+    template_name = "wash/service_form.html"
+    success_url = reverse_lazy("services-list")
+
+@login_required
+def service_delete(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Not allowed")
+
+    service = get_object_or_404(Service, pk=pk)
+
+    if request.method == "POST":
+        service.delete()
+        messages.success(request, "Service supprimé.")
+        return redirect("services-list")
+
+    return render(request, "wash/service_confirm_delete.html", {"service": service})
