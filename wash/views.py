@@ -18,7 +18,6 @@ from .forms import BookingForm, VehicleForm
 
 from django.views.generic import UpdateView
 
-
 # ============================================================
 #                    🔥 ADMIN DASHBOARD
 # ============================================================
@@ -150,12 +149,48 @@ def admin_dashboard(request):
 # ============================================================
 #                   🔥 HOME PAGE (Auto-redirect admin)
 # ============================================================
+@login_required
 def home(request):
-    if request.user.is_authenticated and request.user.is_staff:
+    # Admin → dashboard admin
+    if request.user.is_staff:
         return admin_dashboard(request)
-    return render(request, "wash/home.html")
 
+    user = request.user
 
+    # Bookings du user
+    bookings = Booking.objects.filter(user=user)
+
+    bookings_count = bookings.exclude(status="cancelled").count()
+
+    vehicles_count = Vehicle.objects.filter(owner=user).count()
+
+    total_spent = bookings.filter(
+        status="done",
+        service__price__isnull=False
+    ).aggregate(total=Sum("service__price"))["total"] or 0
+
+    next_booking = bookings.exclude(status="cancelled") \
+        .filter(scheduled_date__gte=timezone.now().date()) \
+        .order_by("scheduled_date") \
+        .first()
+
+    # 🔥 NOUVEAU : statistiques services (pour mini barres)
+    service_usage = (
+        Booking.objects
+        .filter(user=user)
+        .exclude(status="cancelled")
+        .values("service__name")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
+
+    return render(request, "wash/home.html", {
+        "bookings_count": bookings_count,
+        "vehicles_count": vehicles_count,
+        "total_spent": total_spent,
+        "next_booking": next_booking,
+        "service_usage": service_usage,   # ✅ envoyé au template
+    })
 
 # ============================================================
 #                        SERVICES
