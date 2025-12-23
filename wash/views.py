@@ -94,10 +94,14 @@ def admin_dashboard(request):
     # -------------------------------
     #     CHART — SERVICE STATS
     # -------------------------------
-    service_stats = Booking.objects.exclude(status="cancelled") \
-        .values("service__name") \
-        .annotate(count=Count("id")) \
-        .order_by("-count")
+    service_stats = (
+            Booking.objects
+            .exclude(status="cancelled")
+            .filter(service__isnull=False)
+            .values("service__name")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+            )
 
     service_labels = [s["service__name"] for s in service_stats]
     service_counts = [s["count"] for s in service_stats]
@@ -107,7 +111,9 @@ def admin_dashboard(request):
     #     🔥 NEW: CHART — TOP CLIENTS
     # -------------------------------
     top_clients = (
-        Booking.objects.exclude(status="cancelled")
+        Booking.objects
+        .exclude(status="cancelled")
+        .filter(user__isnull=False)
         .values("user__username")
         .annotate(total=Count("id"))
         .order_by("-total")[:5]

@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+
 User = settings.AUTH_USER_MODEL   # string like "auth.User" or custom user model
 
 class Service(models.Model):
@@ -31,21 +32,51 @@ class Booking(models.Model):
         ('done', 'Done'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    vehicle = models.ForeignKey(Vehicle, null=True, blank=True, on_delete=models.SET_NULL)
-    service = models.ForeignKey(Service, null=True, blank=True, on_delete=models.SET_NULL)
+    # 🔥 FIXED: keep bookings even if user/service is deleted
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    vehicle = models.ForeignKey(
+        Vehicle,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+
+    service = models.ForeignKey(
+        Service,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+
     scheduled_date = models.DateField(null=True, blank=True)
     scheduled_time = models.TimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    reminder_sent = models.BooleanField(default=False)  # pour marquer si on a envoyé le rappel
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    reminder_sent = models.BooleanField(default=False)
     ia_message = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Booking #{self.pk} - {getattr(self.user, 'username', self.user_id)} - {self.service.name if self.service else '—'}"
+        return (
+            f"Booking #{self.pk} - "
+            f"{getattr(self.user, 'username', 'Utilisateur supprimé')} - "
+            f"{self.service.name if self.service else 'Service supprimé'}"
+        )
 
     @property
     def scheduled_at(self):
@@ -55,8 +86,10 @@ class Booking(models.Model):
         """
         if not self.scheduled_date or not self.scheduled_time:
             return None
+
         dt = datetime.combine(self.scheduled_date, self.scheduled_time)
-        # si ton projet utilise USE_TZ=True, rendre aware avec timezone par défaut
+
         if timezone.is_naive(dt):
             dt = timezone.make_aware(dt, timezone.get_default_timezone())
+
         return dt
