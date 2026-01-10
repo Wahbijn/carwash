@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{# ============================================================
+   DASHBOARD UTILISATEUR
+   - Stats
+   - Messages intelligents
+   - Actions rapides
+   - Services utilisés (mini barres)
+============================================================ #}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- ===================== HEADER ===================== -->
+  <div class="mb-4">
+    <h2>👋 Bienvenue {{ user.username }}</h2>
+    <p class="text-muted">Voici un aperçu de votre activité</p>
+  </div>
+
+  <!-- ===================== SMART MESSAGE ===================== -->
+  {% if bookings_count == 0 %}
+    <div class="alert alert-info d-flex align-items-center mb-4">
+      <i class="bi bi-info-circle fs-4 me-3"></i>
+      <div>
+        <strong>Bienvenue 👋</strong><br>
+        Vous n’avez pas encore effectué de réservation.
+        <a href="{% url 'bookings-create' %}" class="alert-link">
+          Faites votre première réservation maintenant
+        </a>.
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-success d-flex align-items-center mb-4">
+      <i class="bi bi-check-circle fs-4 me-3"></i>
+      <div>
+        <strong>Merci pour votre confiance 🙌</strong><br>
+        Vous avez déjà effectué {{ bookings_count }}
+        réservation{{ bookings_count|pluralize }}.
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- ===================== STATS ===================== -->
+  <div class="row g-4">
+
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center">
+        <div class="card-body">
+          <i class="bi bi-calendar-check fs-2 text-primary"></i>
+          <h6 class="mt-2">Réservations</h6>
+          <h2>{{ bookings_count }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center">
+        <div class="card-body">
+          <i class="bi bi-car-front fs-2 text-success"></i>
+          <h6 class="mt-2">Véhicules</h6>
+          <h2>{{ vehicles_count }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center">
+        <div class="card-body">
+          <i class="bi bi-cash-coin fs-2 text-warning"></i>
+          <h6 class="mt-2">Total dépensé</h6>
+          <h2>{{ total_spent }} DT</h2>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== NEXT BOOKING ===================== -->
+  <div class="card mt-4 shadow-sm">
+    <div class="card-body">
+      <h5><i class="bi bi-clock-history me-2"></i>Prochaine réservation</h5>
+
+      {% if next_booking %}
+        <p class="mt-2">
+          <strong>{{ next_booking.service.name }}</strong><br>
+          {{ next_booking.scheduled_date }}
+        </p>
+      {% else %}
+        <p class="text-muted mt-2">Aucune réservation à venir</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ===================== SERVICES UTILISÉS (MINI BARS) ===================== -->
+  <div class="card mt-4 shadow-sm">
+    <div class="card-body">
+      <h5><i class="bi bi-wrench me-2"></i>Services utilisés</h5>
+
+      {% if service_usage %}
+        <div class="mt-3">
+          {% for item in service_usage %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <strong>{{ item.service__name }}</strong>
+                <span class="text-muted">{{ item.count }}</span>
+              </div>
+
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-primary"
+                     role="progressbar"
+                     style="width: {{ item.count }}0%;">
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted mt-2">Aucun service utilisé.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ===================== QUICK ACTIONS ===================== -->
+  <div class="card mt-4 shadow-sm">
+    <div class="card-body">
+      <h5><i class="bi bi-lightning-charge me-2"></i>Actions rapides</h5>
+
+      <div class="d-flex gap-3 mt-3 flex-wrap">
+        <a href="{% url 'bookings-create' %}" class="btn btn-primary">
+          ➕ Nouvelle réservation
+        </a>
+        <a href="{% url 'services-list' %}" class="btn btn-outline-secondary">
+          🧼 Services
+        </a>
+        <a href="{% url 'vehicle-create' %}" class="btn btn-outline-dark">
+          🚗 Ajouter un véhicule
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

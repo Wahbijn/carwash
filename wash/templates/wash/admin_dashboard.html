@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <h2 class="mb-4 text-center">Dashboard Administrateur</h2>
+
+    <!-- ============================
+            STATS CARDS (UPDATED)
+    ============================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6>Total Réservations</h6>
+                <h3>{{ total_bookings }}</h3>
+            </div>
+        </div>
+
+        <!-- ✅ CREATED TODAY -->
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6>Créées aujourd’hui</h6>
+                <h3>{{ created_today }}</h3>
+            </div>
+        </div>
+
+        <!-- ✅ SCHEDULED TODAY -->
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6>Programmées aujourd’hui</h6>
+                <h3>{{ scheduled_today }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6>Revenus (TND)</h6>
+                <h3>{{ total_revenue }}</h3>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================
+            SEARCH + FILTERS
+    ============================= -->
+    <div class="card shadow-sm mb-4 p-3">
+
+        <form method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" value="{{ search_query }}"
+                       class="form-control"
+                       placeholder="Rechercher (client, service, véhicule, ID)">
+                <button class="btn btn-secondary">Rechercher</button>
+            </div>
+        </form>
+
+        <form method="GET" class="row g-3">
+
+            <div class="col-md-3">
+                <label class="form-label">Statut</label>
+                <select name="status" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+                    <option value="done" {% if status_filter == "done" %}selected{% endif %}>Done</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Service</label>
+                <select name="service" class="form-select">
+                    <option value="">Tous</option>
+                    {% for s in services %}
+                        <option value="{{ s.id }}"
+                        {% if service_filter|default:'' == s.id|stringformat:"s" %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" value="{{ date_filter }}" class="form-control">
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary w-100">Filtrer</button>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- ============================
+                CHARTS
+    ============================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center">Réservations par jour</h5>
+                <canvas id="reservationsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center">Services les plus utilisés</h5>
+                <canvas id="serviceChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card shadow-sm p-3 mb-4">
+        <h5 class="text-center">Top Clients</h5>
+        <canvas id="topClientsChart"></canvas>
+    </div>
+
+    <!-- ============================
+        RECENT BOOKINGS
+    ============================= -->
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Dernières réservations</strong>
+
+            <div class="d-flex gap-2">
+                <a href="{% url 'services-create' %}" class="btn btn-success btn-sm">
+                    Ajouter un service
+                </a>
+                <a href="{% url 'bookings-list' %}" class="btn btn-outline-primary btn-sm">
+                    Voir toutes les réservations
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Client</th>
+                            <th>Service</th>
+                            <th>Véhicule</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in latest_bookings %}
+                        <tr>
+                            <td>{{ b.id }}</td>
+                            <td>{{ b.user.username }}</td>
+                            <td>{{ b.service.name }}</td>
+                            <td>{{ b.vehicle.license_plate }}</td>
+                            <td>{{ b.scheduled_date }} {{ b.scheduled_time }}</td>
+
+                            <td>
+                                {% if b.status == "pending" %}
+                                <form method="post" action="{% url 'booking-done' b.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-success btn-sm">
+                                        Mark as done
+                                    </button>
+                                </form>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="badge
+                                    {% if b.status == 'cancelled' %}bg-danger
+                                    {% elif b.status == 'done' %}bg-success
+                                    {% else %}bg-primary{% endif %}">
+                                    {{ b.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-3">
+                                Aucune réservation récente
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ============================
+        CHART SCRIPTS
+============================= -->
+<script>
+    new Chart(reservationsChart, {
+        type: "line",
+        data: {
+            labels: {{ days|safe }},
+            datasets: [{
+                label: "Réservations",
+                data: {{ reservations_count|safe }},
+                borderColor: "#0d6efd",
+                backgroundColor: "rgba(13,110,253,.2)",
+                tension: .3
+            }]
+        }
+    });
+
+    new Chart(serviceChart, {
+        type: "bar",
+        data: {
+            labels: {{ service_labels|safe }},
+            datasets: [{
+                label: "Utilisations",
+                data: {{ service_counts|safe }},
+                backgroundColor: "rgba(25,135,84,.5)"
+            }]
+        }
+    });
+
+    new Chart(topClientsChart, {
+        type: "bar",
+        data: {
+            labels: {{ top_client_names|safe }},
+            datasets: [{
+                label: "Réservations",
+                data: {{ top_client_counts|safe }},
+                backgroundColor: "rgba(255,193,7,.5)"
+            }]
+        }
+    });
+</script>
+
+{% endblock %}

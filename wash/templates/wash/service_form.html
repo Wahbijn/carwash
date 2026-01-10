@@ -1,0 +1,44 @@
+
+
+{% extends "base.html" %}
+
+{% block title %}
+  {% if object %}Modifier un service{% else %}Ajouter un service{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center mb-4">
+  {% if object %}Modifier un service{% else %}Ajouter un service{% endif %}
+</h2>
+
+<div class="card shadow-sm p-4 col-md-6 mx-auto">
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Django will auto-fill old values here -->
+    <div class="mb-3">
+      {{ form.name.label_tag }}
+      {{ form.name }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.price.label_tag }}
+      {{ form.price }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.duration_minutes.label_tag }}
+      {{ form.duration_minutes }}
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">
+      Enregistrer
+    </button>
+
+  </form>
+
+</div>
+
+{% endblock %}

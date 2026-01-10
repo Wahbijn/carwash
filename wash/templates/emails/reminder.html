@@ -1,0 +1,141 @@
+{% load static %}
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Votre Réservation CarWash</title>
+
+    <style>
+        body {
+            background: #f5f7fa;
+            margin: 0;
+            padding: 40px 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .email-container {
+            width: 100%;
+            max-width: 620px;
+            margin: auto;
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #0066ff, #0099ff);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header img {
+            width: 80px;
+            border-radius: 12px;
+        }
+
+        .header-title {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .content {
+            padding: 35px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #222;
+        }
+
+        .info-box {
+            background: #f0f7ff;
+            padding: 18px;
+            margin-top: 15px;
+            border-left: 5px solid #007bff;
+            border-radius: 8px;
+        }
+
+        .info-row {
+            margin-bottom: 10px;
+        }
+
+        .label {
+            color: #444;
+            font-weight: 600;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 25px;
+            background: #007bff;
+            color: white !important;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .btn.cancel {
+            background: #ff3b30;
+        }
+
+        .footer {
+            margin-top: 35px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+            padding: 20px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="email-container">
+
+<div class="header">
+    <img src="https://i.imgur.com/ZVyYPiZ.png" width="200" alt="CarWash Logo">
+    <div class="header-title">Rappel de votre réservation</div>
+</div>
+
+
+    <div class="content">
+
+        <p>Bonjour {{ user.first_name|default:user.username }},</p>
+
+        <p class="section-title">Résumé de votre réservation :</p>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="label">Service :</span> {{ booking.service.name }}
+            </div>
+            <div class="info-row">
+                <span class="label">Date & Heure :</span> {{ booking.scheduled_at|date:"d M Y — H:i T" }}
+            </div>
+            <div class="info-row">
+                <span class="label">Véhicule :</span> {{ booking.vehicle.license_plate }}
+            </div>
+        </div>
+
+        <a href="{{ detail_url }}" class="btn">Voir ma réservation</a>
+        <a href="{{ cancel_url }}" class="btn cancel">Annuler</a>
+
+        <div class="footer">
+            Merci pour votre confiance ❤️<br>
+            Carwash — Votre lavage premium à domicile.
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

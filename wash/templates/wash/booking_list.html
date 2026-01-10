@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Mes réservations{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">Mes réservations</h2>
+    <a class="btn btn-primary" href="{% url 'bookings-create' %}">Nouvelle réservation</a>
+  </div>
+
+  {% if object_list %}
+    <div class="list-group">
+      {% for b in object_list %}
+        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <strong class="d-block">{{ b.service.name|default:"(Service inconnu)" }}</strong>
+            <div class="small text-muted">
+              {% if b.scheduled_date %}{{ b.scheduled_date|date:"d M Y" }}{% endif %}
+              {% if b.scheduled_time %} — {{ b.scheduled_time|time:"H:i" }}{% endif %}
+              {% if b.vehicle %} — {{ b.vehicle.license_plate }}{% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <a href="{% url 'bookings-detail' b.pk %}" class="btn btn-outline-secondary btn-sm">Détails</a>
+            {% if b.user == request.user and b.status != 'cancelled' %}
+              <a href="{% url 'bookings-edit' b.pk %}" class="btn btn-outline-primary btn-sm">Modifier</a>
+              <form method="post" action="{% url 'bookings-cancel' b.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('Confirmer l\'annulation de cette réservation ?');">
+                  Annuler
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info mt-3">
+      Vous n'avez encore aucune réservation.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

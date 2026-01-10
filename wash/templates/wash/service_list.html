@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Services{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">Nos services</h2>
+
+<div class="row g-3">
+  
+  {% for service in object_list %}
+    <div class="col-md-4">
+
+      <div class="card shadow-sm p-3">
+
+        <!-- Service Info -->
+        <h5>{{ service.name }}</h5>
+        <p>{{ service.duration_minutes }} min</p>
+        <p><strong>{{ service.price }} TND</strong></p>
+
+        <!-- ======== BOUTON RÉSERVER ======== -->
+        <a href="{% url 'bookings-create' %}?service={{ service.id }}"
+           class="btn btn-primary w-100">
+          Réserver
+        </a>
+
+        <!-- ======== ADMIN ACTIONS (ONLY STAFF) ======== -->
+        {% if user.is_staff %}
+        <div class="mt-3 d-flex justify-content-between">
+
+          <!-- Modifier -->
+          <a href="{% url 'service-edit' service.id %}" 
+             class="btn btn-warning btn-sm">
+            <i class="bi bi-pencil"></i> Modifier
+          </a>
+
+          <!-- Supprimer -->
+          <form method="POST" action="{% url 'service-delete' service.id %}">
+            {% csrf_token %}
+            <button class="btn btn-danger btn-sm"
+                    onclick="return confirm('Supprimer ce service ?')">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+
+        </div>
+        {% endif %}
+
+      </div>
+
+    </div>
+  {% endfor %}
+
+</div>
+
+{% endblock %}

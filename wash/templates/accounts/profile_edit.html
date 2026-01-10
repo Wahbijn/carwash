@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2>Mon profil</h2>
+  <p><strong>Utilisateur :</strong> {{ user.username }}</p>
+  <p><strong>E-mail :</strong> {{ profile_email|default:"(non renseigné)" }}</p>
+
+  <a href="{% url 'profile-edit' %}" class="btn btn-primary">Modifier</a>
+  <a href="{% url 'bookings-list' %}" class="btn btn-secondary">Mes réservations</a>
+</div>
+{% endblock %}

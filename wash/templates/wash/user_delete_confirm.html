@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Supprimer utilisateur{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <h3>Supprimer {{ user_obj.username }} ?</h3>
+
+    <div class="alert alert-danger">
+        Cette action est irréversible.
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button class="btn btn-danger">Supprimer définitivement</button>
+        <a href="{% url 'user-detail' user_obj.id %}" class="btn btn-secondary">Annuler</a>
+    </form>
+
+</div>
+{% endblock %}

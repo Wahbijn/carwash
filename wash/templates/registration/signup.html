@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Inscription{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card mt-4">
+      <div class="card-body">
+        <h4>Créer un compte</h4>
+                  <form method="post">
+                      {% csrf_token %}
+
+                      {{ form.username|as_crispy_field }}
+                      {{ form.email|as_crispy_field }}
+                      {{ form.password1|as_crispy_field }}
+                      {{ form.password2|as_crispy_field }}
+
+                      <button type="submit" class="btn btn-primary w-100">
+                          S’inscrire
+                      </button>
+                  </form>
+        <hr>
+        <p class="small text-center">Déjà inscrit ? <a href="{% url 'login' %}">Se connecter</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

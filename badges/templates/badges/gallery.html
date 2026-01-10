@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Succes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">🏆 Mes Succes</h1>
+
+    <!-- Progress Overview -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-2">Progression Globale</h5>
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {{ progress_percent }}%">
+                            {{ unlocked_count }} / {{ total_badges }}
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ progress_percent }}% des succes debloques</small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <h2 class="mb-0 text-success">{{ unlocked_count }}</h2>
+                    <small class="text-muted">Succes debloques</small>
+                    {% if new_badges_count > 0 %}
+                    <div class="mt-2">
+                        <span class="badge bg-danger">{{ new_badges_count }} NOUVEAU!</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges Gallery -->
+    <div class="row g-3">
+        {% for item in badges_data %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="card h-100 text-center" 
+                 style="{% if not item.unlocked %}opacity: 0.4; filter: grayscale(80%);{% else %}border: 2px solid #28a745; box-shadow: 0 0 10px rgba(40,167,69,0.3);{% endif %}">
+                <div class="card-body p-3">
+                    <div style="font-size: 3rem;">{{ item.badge.icon }}</div>
+                    <h6 class="mt-2 mb-1">{{ item.badge.name }}</h6>
+                    <p class="small text-muted mb-2">{{ item.badge.description }}</p>
+                    {% if item.badge.rarity == 'legendary' %}
+                    <span class="badge bg-warning text-dark">LEGENDARY</span>
+                    {% elif item.badge.rarity == 'epic' %}
+                    <span class="badge" style="background: #9b59b6; color: white;">EPIC</span>
+                    {% elif item.badge.rarity == 'rare' %}
+                    <span class="badge bg-info">RARE</span>
+                    {% endif %}
+                    <div class="mt-2">
+                        {% if item.unlocked %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        {% else %}
+                        <i class="bi bi-lock-fill text-muted"></i>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if new_badges_count > 0 %}
+    <div class="text-center mt-4">
+        <a href="{% url 'badges-mark-seen' %}" class="btn btn-primary">
+            Marquer tous comme vus
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

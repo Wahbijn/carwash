@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Réservation {{ object.pk }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1>Réservation {{ object.pk }}</h1>
+
+  <div class="mb-3">
+    <strong>Date et heure prévues :</strong>
+    {% if object.scheduled_date or object.scheduled_time %}
+      {% if object.scheduled_date %}{{ object.scheduled_date|date:"d M Y" }}{% endif %}
+      {% if object.scheduled_time %} — {{ object.scheduled_time|time:"H:i" }}{% endif %}
+    {% else %}
+      Non renseigné
+    {% endif %}
+  </div>
+
+  <div class="mb-3">
+    <strong>Service :</strong>
+    {% if object.service %}
+      {{ object.service.name }} — {{ object.service.price }} TND — {{ object.service.duration_minutes }} min
+    {% else %}
+      —
+    {% endif %}
+  </div>
+
+  <div class="mb-3">
+    <strong>Véhicule :</strong>
+    {% if object.vehicle %}
+      {{ object.vehicle.license_plate }} — {{ object.vehicle.make }} {{ object.vehicle.model }}
+    {% else %}
+      —
+    {% endif %}
+  </div>
+
+  <div class="mb-3">
+    <strong>Statut :</strong>
+    <span class="badge
+      {% if object.status == 'cancelled' %}bg-danger
+      {% elif object.status == 'done' %}bg-success
+      {% else %}bg-secondary{% endif %}">
+      {{ object.status|capfirst }}
+    </span>
+  </div>
+
+  <div class="mb-3">
+    <strong>Créé le :</strong>
+    {% if object.created_at %}
+      {{ object.created_at|date:"d M Y H:i" }}
+    {% else %}
+      —
+    {% endif %}
+  </div>
+
+
+
+  <!-- Actions row: Retour à gauche, actions à droite -->
+  <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <a href="{% url 'bookings-list' %}" class="btn btn-outline-secondary">
+        Retour
+      </a>
+    </div>
+
+    <div class="d-flex gap-2">
+      {# Modifier et Annuler: seulement si c'est le propriétaire #}
+      {% if object.user == request.user %}
+        <a class="btn btn-outline-primary" href="{% url 'bookings-edit' object.pk %}">
+          Modifier
+        </a>
+
+        {% if object.status != 'cancelled' %}
+          <form method="post" action="{% url 'bookings-cancel' object.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"
+                    onclick='return confirm("Confirmer lannulation de cette réservation ?");'>
+              Annuler
+            </button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

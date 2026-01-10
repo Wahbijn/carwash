@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Ajouter un véhicule{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Ajouter un véhicule</h2>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="mb-3">
+            <label class="form-label">Marque :</label>
+            {{ form.make }}
+            {% if form.make.errors %}
+                <div class="text-danger small">{{ form.make.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Modèle :</label>
+            {{ form.model }}
+            {% if form.model.errors %}
+                <div class="text-danger small">{{ form.model.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Matricule :</label>
+            {{ form.license_plate }}
+            {% if form.license_plate.errors %}
+                <div class="text-danger small">{{ form.license_plate.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+        <a href="{% url 'bookings-create' %}" class="btn btn-outline-secondary ms-2">Annuler</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+venv/
+*.pem
+
+# Django
+staticfiles/
+media/
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# DB
+*.sqlite3
+
+# Documentation & IDE configs
+.claude/
+AUTO_REMINDER_GUIDE.md
+DOCUMENTATION_SUMMARY.md
+IMPLEMENTATION.md

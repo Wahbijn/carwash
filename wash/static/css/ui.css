@@ -1,0 +1,4 @@
+/* static/css/ui.css */
+.card { transition: transform .16s ease, box-shadow .16s ease; }
+.card:active { transform: translateY(1px) scale(.998); }
+.btn:focus { box-shadow: 0 0 0 .15rem rgba(13,110,253,.15); }
